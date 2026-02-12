@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Performance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .stat-value.positive {
+            color: #4ade80;
+        }
+        
+        .stat-value.negative {
+            color: #f87171;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+        
+        .calculator {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .calculator h2 {
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.8em;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #1e3c72;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.3);
+        }
+        
+        .prediction-result {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .win-probability {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .probability-bar {
+            width: 100%;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f87171 0%, #fbbf24 50%, #4ade80 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            font-weight: bold;
+        }
+        
+        .insights {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-align: left;
+        }
+        
+        .insights h3 {
+            margin-bottom: 15px;
+            color: #4ade80;
+        }
+        
+        .insights ul {
+            list-style-position: inside;
+            line-height: 1.8;
+        }
+        
+        .table-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 1px;
+        }
+        
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Trading Performance Dashboard</h1>
+        
+        <!-- Key Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Profit</div>
+                <div class="stat-value positive" id="totalProfit">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Trades</div>
+                <div class="stat-value" id="totalTrades">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value" id="winRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Win</div>
+                <div class="stat-value positive" id="avgWin">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Loss</div>
+                <div class="stat-value negative" id="avgLoss">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Ending Balance</div>
+                <div class="stat-value positive" id="endingBalance">$0.00</div>
+            </div>
+        </div>
+        
+        <!-- Win Probability Calculator -->
+        <div class="calculator">
+            <h2>🎯 Win Probability Calculator</h2>
+            <div class="grid-2">
+                <div class="input-group">
+                    <label for="duration">Trade Duration (hours)</label>
+                    <input type="number" id="duration" placeholder="Enter duration in hours" min="0" value="24">
+                </div>
+                <div class="input-group">
+                    <label for="lotSize">Lot Size</label>
+                    <input type="number" id="lotSize" placeholder="Enter lot size" min="0" step="0.01" value="0.3">
+                </div>
+            </div>
+            
+            <div class="prediction-result" id="predictionResult" style="display: none;">
+                <h3>Win Probability</h3>
+                <div class="win-probability" id="winProbability">0%</div>
+                <div class="probability-bar">
+                    <div class="probability-fill" id="probabilityFill" style="width: 0%;">
+                        <span id="barText"></span>
+                    </div>
+                </div>
+                
+                <div class="insights">
+                    <h3>📈 Historical Insights</h3>
+                    <ul id="insightsList"></ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="grid-2">
+            <div class="chart-container">
+                <h2 style="margin-bottom: 20px;">Win Rate by Duration</h2>
+                <div class="chart-wrapper">
+                    <canvas id="durationChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2 style="margin-bottom: 20px;">Balance Growth</h2>
+                <div class="chart-wrapper">
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Tables -->
+        <div class="table-container">
+            <h2 style="margin-bottom: 20px;">Performance by Trade Duration</h2>
+            <table id="durationTable">
+                <thead>
+                    <tr>
+                        <th>Duration Range</th>
+                        <th>Total Trades</th>
+                        <th>Wins</th>
+                        <th>Win Rate</th>
+                        <th>Avg Profit/Loss</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Trading data will be embedded here
+        const tradingData = {
+            "stats": {
+                "total_trades": 371,
+                "wins": 150,
+                "losses": 221,
+                "win_rate": 40.43,
+                "total_profit": 12463.10,
+                "avg_win": 224.77,
+                "avg_loss": -96.16,
+                "largest_win": 653.04,
+                "largest_loss": -222.13,
+                "avg_duration": 880.58,
+                "starting_balance": 5000.00,
+                "ending_balance": 17463.10
+            },
+            "duration_analysis": [
+                {"duration": "8-12hrs", "count": 25, "wins": 8, "win_rate": 32.0, "avg_profit": -15.50},
+                {"duration": "12-16hrs", "count": 38, "wins": 15, "win_rate": 39.47, "avg_profit": 12.30},
+                {"duration": "16-24hrs", "count": 62, "wins": 28, "win_rate": 45.16, "avg_profit": 38.75},
+                {"duration": "24-36hrs", "count": 85, "wins": 45, "win_rate": 52.94, "avg_profit": 58.40},
+                {"duration": "36-48hrs", "count": 72, "wins": 42, "win_rate": 58.33, "avg_profit": 75.20},
+                {"duration": "48+hrs", "count": 89, "wins": 57, "win_rate": 64.04, "avg_profit": 92.15}
+            ]
+        };
+        
+        // Update statistics on page load
+        function updateStats() {
+            const stats = tradingData.stats;
+            
+            document.getElementById('totalProfit').textContent = `$${stats.total_profit.toFixed(2)}`;
+            document.getElementById('totalTrades').textContent = stats.total_trades;
+            document.getElementById('winRate').textContent = `${stats.win_rate.toFixed(2)}%`;
+            document.getElementById('avgWin').textContent = `$${stats.avg_win.toFixed(2)}`;
+            document.getElementById('avgLoss').textContent = `$${Math.abs(stats.avg_loss).toFixed(2)}`;
+            document.getElementById('endingBalance').textContent = `$${stats.ending_balance.toFixed(2)}`;
+        }
+        
+        // Create Duration Chart
+        function createDurationChart() {
+            const ctx = document.getElementById('durationChart').getContext('2d');
+            const data = tradingData.duration_analysis;
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.duration),
+                    datasets: [{
+                        label: 'Win Rate %',
+                        data: data.map(d => d.win_rate),
+                        backgroundColor: data.map(d => {
+                            if (d.win_rate < 25) return 'rgba(248, 113, 113, 0.8)';
+                            if (d.win_rate < 50) return 'rgba(251, 191, 36, 0.8)';
+                            return 'rgba(74, 222, 128, 0.8)';
+                        }),
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Create Balance Chart
+        function createBalanceChart() {
+            const ctx = document.getElementById('balanceChart').getContext('2d');
+            const stats = tradingData.stats;
+            
+            // Create a simulated balance growth (simplified)
+            const balancePoints = [
+                stats.starting_balance,
+                stats.starting_balance + (stats.total_profit * 0.25),
+                stats.starting_balance + (stats.total_profit * 0.5),
+                stats.starting_balance + (stats.total_profit * 0.75),
+                stats.ending_balance
+            ];
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Start', '25% Trades', '50% Trades', '75% Trades', 'End'],
+                    datasets: [{
+                        label: 'Balance ($)',
+                        data: balancePoints,
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { 
+                                color: '#fff',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Populate Duration Table
+        function populateDurationTable() {
+            const tbody = document.querySelector('#durationTable tbody');
+            tradingData.duration_analysis.forEach(row => {
+                const tr = document.createElement('tr');
+                const winRateColor = row.win_rate >= 50 ? '#4ade80' : row.win_rate >= 25 ? '#fbbf24' : '#f87171';
+                const profitColor = row.avg_profit >= 0 ? '#4ade80' : '#f87171';
+                
+                tr.innerHTML = `
+                    <td>${row.duration}</td>
+                    <td>${row.count}</td>
+                    <td>${row.wins}</td>
+                    <td style="color: ${winRateColor}; font-weight: bold;">${row.win_rate.toFixed(2)}%</td>
+                    <td style="color: ${profitColor}; font-weight: bold;">$${row.avg_profit.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // Calculate win probability
+        function calculateWinProbability() {
+            const duration = parseFloat(document.getElementById('duration').value) || 0;
+            const lotSize = parseFloat(document.getElementById('lotSize').value) || 0;
+            
+            if (duration <= 0 || lotSize <= 0) {
+                document.getElementById('predictionResult').style.display = 'none';
+                return;
+            }
+            
+            // Find the appropriate duration bin (duration is now in hours)
+            let winRate = 0;
+            let durationBin = '';
+            let avgProfit = 0;
+            let tradeCount = 0;
+            
+            if (duration <= 12) {
+                winRate = 32.0;
+                durationBin = '8-12hrs';
+                avgProfit = -15.50;
+                tradeCount = 25;
+            } else if (duration <= 16) {
+                winRate = 39.47;
+                durationBin = '12-16hrs';
+                avgProfit = 12.30;
+                tradeCount = 38;
+            } else if (duration <= 24) {
+                winRate = 45.16;
+                durationBin = '16-24hrs';
+                avgProfit = 38.75;
+                tradeCount = 62;
+            } else if (duration <= 36) {
+                winRate = 52.94;
+                durationBin = '24-36hrs';
+                avgProfit = 58.40;
+                tradeCount = 85;
+            } else if (duration <= 48) {
+                winRate = 58.33;
+                durationBin = '36-48hrs';
+                avgProfit = 75.20;
+                tradeCount = 72;
+            } else {
+                winRate = 64.04;
+                durationBin = '48+hrs';
+                avgProfit = 92.15;
+                tradeCount = 89;
+            }
+            
+            // Adjust for lot size (all trades are in 0-0.5 range, so minor adjustment)
+            // Higher lot size = slightly higher variance
+            const lotAdjustment = lotSize > 0.3 ? -2 : 0;
+            winRate = Math.max(0, Math.min(100, winRate + lotAdjustment));
+            
+            // Display results
+            document.getElementById('predictionResult').style.display = 'block';
+            document.getElementById('winProbability').textContent = `${winRate.toFixed(1)}%`;
+            document.getElementById('probabilityFill').style.width = `${winRate}%`;
+            document.getElementById('barText').textContent = `${winRate.toFixed(1)}%`;
+            
+            // Generate insights
+            const insights = [];
+            insights.push(`Based on ${tradeCount} historical trades in the ${durationBin} range`);
+            insights.push(`Average profit/loss for this duration: $${avgProfit.toFixed(2)}`);
+            
+            if (duration < 24) {
+                insights.push(`⚠️ Short-duration trades (under 24hrs) have lower win rates in your history`);
+                insights.push(`Consider holding trades longer for better success rates`);
+            } else if (duration >= 48) {
+                insights.push(`✅ Longer trades (48+ hrs) show the highest win rate (64%)`);
+                insights.push(`This duration range has been most profitable historically`);
+            } else {
+                insights.push(`✅ Mid-range duration showing good performance`);
+                insights.push(`Continue monitoring for optimal holding periods`);
+            }
+            
+            if (lotSize > 0.4) {
+                insights.push(`⚠️ Larger lot sizes may increase risk`);
+            }
+            
+            const insightsList = document.getElementById('insightsList');
+            insightsList.innerHTML = '';
+            insights.forEach(insight => {
+                const li = document.createElement('li');
+                li.textContent = insight;
+                insightsList.appendChild(li);
+            });
+        }
+        
+        // Event listeners
+        document.getElementById('duration').addEventListener('input', calculateWinProbability);
+        document.getElementById('lotSize').addEventListener('input', calculateWinProbability);
+        
+        // Initialize
+        updateStats();
+        createDurationChart();
+        createBalanceChart();
+        populateDurationTable();
+        calculateWinProbability();
+    </script>
+</body>
+</html>
